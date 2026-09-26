@@ -1,0 +1,42 @@
+{
+  "services": {
+    "claude": {
+      "windows": [
+        {
+          "name": "5h",
+          "used": 6,
+          "resets": "1:39am"
+        },
+        {
+          "name": "week",
+          "used": 3,
+          "resets": "Oct 2 at 7:59am"
+        }
+      ],
+      "fetched": "2026-09-25T23:29:54-04:00",
+      "label": "Claude",
+      "checked": "2026-09-25T23:29:54-04:00",
+      "error": null
+    },
+    "codex": {
+      "windows": [
+        {
+          "name": "5h",
+          "used": 3,
+          "resets": "4:26 AM on 26 Sep"
+        },
+        {
+          "name": "week",
+          "used": 53,
+          "resets": "7:11 PM on 30 Sep"
+        }
+      ],
+      "fetched": "2026-09-25T23:30:04-04:00",
+      "label": "Codex",
+      "checked": "2026-09-25T23:30:04-04:00",
+      "error": null
+    }
+  },
+  "updated": "2026-09-25T23:30:14-04:00",
+  "interval": 300
+}

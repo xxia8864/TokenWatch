@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#10151e">
+<title>Tokenwatch</title>
+<style>
+  :root { color-scheme: dark; --bg:#10151e; --panel:#1b2330; --ink:#f5f2ed; --muted:#a2adba; --line:#344050; --track:#344052; --claude:#e9a77e; --codex:#aca6ed; --warn:#f0bf6c; --hot:#f0796f; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink); }
+  body { min-height:100dvh; }
+  #root { height:100vh; height:100svh; display:grid; grid-template-rows:86px minmax(0,1fr) 18px; gap:10px; padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left)); }
+  header { display:flex; align-items:center; justify-content:center; gap:32px; border:1px solid var(--line); border-radius:20px; background:#171e29; }
+  #date { color:var(--muted); font-size:clamp(14px,1.6vw,22px); letter-spacing:.06em; text-transform:uppercase; }
+  #time { font-size:clamp(32px,4.8vw,64px); font-weight:600; letter-spacing:-.055em; font-variant-numeric:tabular-nums; }
+  #dashboard { min-height:0; display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1.1fr) minmax(0,1.3fr) minmax(0,1.1fr); gap:10px; }
+  #dashboard.one-portrait { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  #dashboard.no-portraits { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .usage,.portrait { min-width:0; min-height:0; border-radius:20px; overflow:hidden; }
+  .usage { --accent:var(--claude); display:flex; flex-direction:column; gap:18px; padding:20px; background:var(--panel); border:1px solid var(--line); }
+  .usage.codex { --accent:var(--codex); }
+  .usage-head { display:flex; flex-direction:column; gap:8px; }
+  .usage-title { color:var(--accent); font-size:clamp(16px,1.6vw,24px); font-weight:700; letter-spacing:.025em; }
+  .fetched { color:var(--muted); font-size:clamp(11px,1.05vw,14px); }
+  .metrics { display:flex; flex:1; flex-direction:column; justify-content:center; gap:32px; }
+  .metric { min-width:0; }
+  .metric-label { color:var(--muted); font-size:clamp(12px,1.1vw,16px); letter-spacing:.08em; text-transform:uppercase; }
+  .metric-value { margin:5px 0 8px; font-size:clamp(60px,9.1vw,132px); line-height:.92; font-weight:600; letter-spacing:-.085em; font-variant-numeric:tabular-nums; }
+  .metric-value span { margin-left:3px; color:var(--muted); font-size:.42em; font-weight:400; letter-spacing:-.04em; }
+  .metric.week .metric-value { font-size:clamp(42px,5.9vw,86px); }
+  .track { height:clamp(8px,1.1vh,12px); border-radius:20px; background:var(--track); overflow:hidden; }
+  .metric.week .track { height:7px; }
+  .fill { height:100%; width:0; border-radius:inherit; background:var(--accent); }
+  .metric.warn .fill { background:var(--warn); }
+  .metric.hot .fill { background:var(--hot); }
+  .metric.warn .metric-value { color:var(--warn); }
+  .metric.hot .metric-value { color:var(--hot); }
+  .reset { margin-top:10px; color:var(--muted); font-size:clamp(11px,1.05vw,15px); line-height:1.35; }
+  .error { color:var(--warn); font-size:13px; line-height:1.35; }
+  .empty { color:var(--muted); line-height:1.5; }
+  .portrait { background:#eeeae6; }
+  .portrait[hidden] { display:none; }
+  .portrait img { display:block; width:100%; height:100%; object-fit:contain; object-position:center bottom; mix-blend-mode:multiply; }
+  footer { min-height:19px; color:var(--muted); text-align:right; font-size:12px; }
+  footer.stale { color:var(--hot); }
+  @media (max-height:630px) and (orientation:landscape) { #root{grid-template-rows:64px minmax(0,1fr) 18px} .usage{gap:8px} .metrics{gap:16px} .metric-value{font-size:clamp(44px,8vw,100px)} .metric.week .metric-value{font-size:clamp(34px,5vw,68px)} }
+  @media (orientation:portrait) { #root{height:auto;min-height:100svh;grid-template-rows:86px auto 18px} #dashboard,#dashboard.one-portrait{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);grid-template-rows:repeat(2,minmax(420px,1fr))} #dashboard.no-portraits{grid-template-columns:1fr} .metric-value{font-size:clamp(64px,12vw,120px)} .metric.week .metric-value{font-size:clamp(48px,8vw,80px)} }
+</style>
+</head>
+<body>
+<div id="root">
+  <header aria-label="Date and time"><span id="date"></span><span id="time"></span></header>
+  <main id="dashboard">
+    <section id="claude-usage" class="usage claude" aria-label="Claude usage"></section>
+    <div class="portrait claude"><img src="image/Claude.webp" alt="Claude character illustration"></div>
+    <section id="codex-usage" class="usage codex" aria-label="Codex usage"></section>
+    <div class="portrait codex"><img src="image/Codex.webp" alt="Codex character illustration"></div>
+  </main>
+  <footer id="foot">Waiting for usage data…</footer>
+</div>
+<script>
+const REFRESH_MS = 60 * 1000;
+const dashboard = document.getElementById("dashboard");
+function hideBrokenPortrait(img) {
+  img.parentElement.hidden = true;
+  const missing = dashboard.querySelectorAll(".portrait[hidden]").length;
+  dashboard.classList.toggle("one-portrait", missing === 1);
+  dashboard.classList.toggle("no-portraits", missing === 2);
+}
+dashboard.querySelectorAll(".portrait img").forEach(img => {
+  img.addEventListener("error", () => hideBrokenPortrait(img));
+  if (img.complete && img.naturalWidth === 0) hideBrokenPortrait(img);
+});
+const WINDOW_NAMES = { "5h":"5-hour window", "week":"Weekly limit" };
+const dateFormat = new Intl.DateTimeFormat("en-US", { weekday:"short", month:"long", day:"numeric" });
+const timeFormat = new Intl.DateTimeFormat("en-US", { hour:"numeric", minute:"2-digit" });
+const shortTime = iso => iso ? timeFormat.format(new Date(iso)) : "—";
+function updateClock() { const now = new Date(); document.getElementById("date").textContent = dateFormat.format(now); document.getElementById("time").textContent = timeFormat.format(now); }
+// Scraper text is inserted only through textContent.
+function el(tag, cls, value) { const node = document.createElement(tag); if (cls) node.className = cls; if (value != null) node.textContent = value; return node; }
+function metric(window) {
+  const used = Math.max(0, Math.min(100, Number(window.used) || 0));
+  const box = el("div", `metric ${window.name === "week" ? "week" : ""} ${used >= 85 ? "hot" : used >= 60 ? "warn" : ""}`);
+  const value = el("div", "metric-value", String(used)); value.append(el("span", null, "%"));
+  const track = el("div", "track"); const fill = el("div", "fill"); fill.style.width = `${used}%`; track.append(fill);
+  box.append(el("div", "metric-label", WINDOW_NAMES[window.name] || window.name), value, track, el("div", "reset", `Used · Resets ${window.resets || "—"}`));
+  return box;
+}
+function renderService(id, service) {
+  const panel = document.getElementById(`${id}-usage`); const head = el("div", "usage-head");
+  head.append(el("div", "usage-title", `${id === "claude" ? "Claude" : "Codex"} Usage`), el("div", "fetched", service?.fetched ? `Captured at ${shortTime(service.fetched)}` : "No capture yet"));
+  const metrics = el("div", "metrics");
+  if (service?.windows?.length) metrics.append(...service.windows.map(metric)); else metrics.append(el("div", "empty", "Waiting for the first successful capture."));
+  panel.replaceChildren(head, metrics);
+  if (service?.error) panel.append(el("div", "error", "Latest capture failed. Check the scraper output on your Mac."));
+}
+function render(data) {
+  renderService("claude", data.services?.claude); renderService("codex", data.services?.codex);
+  const foot = document.getElementById("foot"); const ageMin = (Date.now() - new Date(data.updated)) / 60000; const limitMin = (data.interval || 600) * 2 / 60 + 2;
+  if (!data.updated || !Number.isFinite(ageMin)) { foot.className = "stale"; foot.textContent = "Waiting for the first update from your Mac."; }
+  else if (ageMin > limitMin) { foot.className = "stale"; foot.textContent = `No update from your Mac for ${Math.round(ageMin)} minutes. The scraper may have stopped or your Mac may be asleep.`; }
+  else { foot.className = ""; foot.textContent = `Updated ${shortTime(data.updated)}`; }
+}
+async function load() {
+  try { const response = await fetch(`usage.json?t=${Date.now()}`, { cache:"no-store" }); if (!response.ok) throw new Error(`HTTP ${response.status}`); render(await response.json()); }
+  catch (error) { const foot = document.getElementById("foot"); foot.className = "stale"; foot.textContent = `Can't reach your Mac (${error.message}). Check that run.sh is running and the tablet is on the same network.`; }
+}
+updateClock(); setInterval(updateClock, 1000); load(); setInterval(load, REFRESH_MS);
+</script>
+</body>
+</html>
