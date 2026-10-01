@@ -76,8 +76,8 @@ tokenwatch/
     ├── index.html  # the dashboard
     ├── usage.json  # written by scrape.py
     └── image/
-        ├── Claude.webp
-        └── Codex.webp
+        ├── Claude.png
+        └── Codex.png
 ```
 
 ## Configuration
@@ -96,7 +96,7 @@ On the page, colors are defined by the `:root` CSS variables in `index.html`. Th
 
 ## Images
 
-The two image columns load `public/image/Claude.webp` and `public/image/Codex.webp`. You can replace those files with images you have permission to use. If either image is missing or cannot load, its column hides automatically.
+The two image columns load `public/image/Claude.png` and `public/image/Codex.png`. You can replace those files with images you have permission to use. If either image is missing or cannot load, its column hides automatically.
 
 ## Security notes
 
