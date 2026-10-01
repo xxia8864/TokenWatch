@@ -6,15 +6,25 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#10151e">
 <title>Tokenwatch</title>
+<script>
+try {
+  const savedTheme = localStorage.getItem("tokenwatch-theme");
+  if (savedTheme === "light" || savedTheme === "dark") document.documentElement.dataset.theme = savedTheme;
+} catch (_) {}
+</script>
 <style>
-  :root { color-scheme: dark; --bg:#10151e; --panel:#1b2330; --ink:#f5f2ed; --muted:#a2adba; --line:#344050; --track:#344052; --claude:#e9a77e; --codex:#aca6ed; --warn:#f0bf6c; --hot:#f0796f; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  :root { color-scheme: dark; --bg:#10151e; --header:#171e29; --panel:#1b2330; --ink:#f5f2ed; --muted:#a2adba; --line:#344050; --track:#344052; --claude:#e9a77e; --codex:#aca6ed; --warn:#f0bf6c; --hot:#f0796f; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  :root[data-theme="light"] { color-scheme:light; --bg:#f3f5f8; --header:#fff; --panel:#fff; --ink:#1a2331; --muted:#5f6d7c; --line:#d4dbe4; --track:#e1e6ed; --claude:#a34e23; --codex:#5c55a4; --warn:#a66413; --hot:#bf3c3c; }
+  @media (prefers-color-scheme:light) { :root:not([data-theme]) { color-scheme:light; --bg:#f3f5f8; --header:#fff; --panel:#fff; --ink:#1a2331; --muted:#5f6d7c; --line:#d4dbe4; --track:#e1e6ed; --claude:#a34e23; --codex:#5c55a4; --warn:#a66413; --hot:#bf3c3c; } }
   * { box-sizing:border-box; }
   html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink); }
   body { min-height:100dvh; }
   #root { height:100vh; height:100svh; display:grid; grid-template-rows:86px minmax(0,1fr) 18px; gap:10px; padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left)); }
-  header { display:flex; align-items:center; justify-content:center; gap:32px; border:1px solid var(--line); border-radius:20px; background:#171e29; }
+  header { position:relative; display:flex; align-items:center; justify-content:center; gap:32px; border:1px solid var(--line); border-radius:20px; background:var(--header); }
   #date { color:var(--muted); font-size:clamp(14px,1.6vw,22px); letter-spacing:.06em; text-transform:uppercase; }
   #time { font-size:clamp(32px,4.8vw,64px); font-weight:600; letter-spacing:-.055em; font-variant-numeric:tabular-nums; }
+  #theme-toggle { position:absolute; right:16px; padding:9px 13px; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--ink); font:inherit; font-size:13px; cursor:pointer; }
+  #theme-toggle:focus-visible { outline:2px solid var(--codex); outline-offset:2px; }
   #dashboard { min-height:0; display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1.1fr) minmax(0,1.3fr) minmax(0,1.1fr); gap:10px; }
   #dashboard.one-portrait { grid-template-columns:repeat(3,minmax(0,1fr)); }
   #dashboard.no-portraits { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -40,9 +50,9 @@
   .reset { margin-top:10px; color:var(--muted); font-size:clamp(11px,1.05vw,15px); line-height:1.35; }
   .error { color:var(--warn); font-size:13px; line-height:1.35; }
   .empty { color:var(--muted); line-height:1.5; }
-  .portrait { background:#eeeae6; }
+  .portrait { background:var(--bg); }
   .portrait[hidden] { display:none; }
-  .portrait img { display:block; width:100%; height:100%; object-fit:contain; object-position:center bottom; mix-blend-mode:multiply; }
+  .portrait img { display:block; width:100%; height:100%; object-fit:contain; object-position:center bottom; }
   footer { min-height:19px; color:var(--muted); text-align:right; font-size:12px; }
   footer.stale { color:var(--hot); }
   @media (max-height:630px) and (orientation:landscape) { #root{grid-template-rows:64px minmax(0,1fr) 18px} .usage{gap:8px} .metrics{gap:16px} .metric-value{font-size:clamp(44px,8vw,100px)} .metric.week .metric-value{font-size:clamp(34px,5vw,68px)} }
@@ -51,17 +61,35 @@
 </head>
 <body>
 <div id="root">
-  <header aria-label="Date and time"><span id="date"></span><span id="time"></span></header>
+  <header aria-label="Date and time"><span id="date"></span><span id="time"></span><button id="theme-toggle" type="button"></button></header>
   <main id="dashboard">
     <section id="claude-usage" class="usage claude" aria-label="Claude usage"></section>
-    <div class="portrait claude"><img src="image/Claude.webp" alt="Claude character illustration"></div>
+    <div class="portrait claude"><img src="image/Claude.png" alt="Claude character illustration"></div>
     <section id="codex-usage" class="usage codex" aria-label="Codex usage"></section>
-    <div class="portrait codex"><img src="image/Codex.webp" alt="Codex character illustration"></div>
+    <div class="portrait codex"><img src="image/Codex.png" alt="Codex character illustration"></div>
   </main>
   <footer id="foot">Waiting for usage data…</footer>
 </div>
 <script>
 const REFRESH_MS = 60 * 1000;
+const themeToggle = document.getElementById("theme-toggle");
+const systemTheme = window.matchMedia("(prefers-color-scheme: light)");
+function currentTheme() { return document.documentElement.dataset.theme || (systemTheme.matches ? "light" : "dark"); }
+function updateThemeButton() {
+  const theme = currentTheme();
+  themeToggle.textContent = theme === "light" ? "Dark mode" : "Light mode";
+  themeToggle.setAttribute("aria-label", `Switch to ${theme === "light" ? "dark" : "light"} mode`);
+  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+}
+themeToggle.addEventListener("click", () => {
+  const nextTheme = currentTheme() === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = nextTheme;
+  try { localStorage.setItem("tokenwatch-theme", nextTheme); } catch (_) {}
+  updateThemeButton();
+});
+if (systemTheme.addEventListener) systemTheme.addEventListener("change", updateThemeButton);
+else systemTheme.addListener(updateThemeButton);
+updateThemeButton();
 const dashboard = document.getElementById("dashboard");
 function hideBrokenPortrait(img) {
   img.parentElement.hidden = true;
