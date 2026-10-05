@@ -144,7 +144,7 @@ def run_once(state, tools):
 
 def main():
     if not shutil.which("tmux"):
-        sys.exit("需要 tmux：brew install tmux")
+        sys.exit("tmux is required: brew install tmux (macOS) / sudo apt install tmux (Linux)")
     PUBLIC.mkdir(exist_ok=True)
     PROBE_DIR.mkdir(exist_ok=True)
 

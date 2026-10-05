@@ -34,9 +34,9 @@ This approach is fragile: a change to either CLI's usage screen can break the pa
 
 ## Requirements
 
-- macOS (`scrape.py` may also work on Linux, but `run.sh` uses macOS-specific commands)
+- macOS or Linux
 - Python 3.7+ (standard library only)
-- tmux: `brew install tmux`
+- tmux: `brew install tmux` (macOS) or `sudo apt install tmux` (Debian/Ubuntu)
 - Claude Code and/or Codex installed and logged in
 - A device with a browser on the same network
 
@@ -64,17 +64,34 @@ bash run.sh
 
 The scraper saves the most recent captured CLI screens in `probe/last_claude.txt` and `probe/last_codex.txt` for troubleshooting.
 
+## Run at boot on Linux (systemd)
+
+`tokenwatch.service` is a systemd user unit. It assumes the project lives at `~/github/tokenwatch`; edit the paths in the file if it does not.
+
+```bash
+mkdir -p ~/.config/systemd/user
+ln -sf ~/github/tokenwatch/tokenwatch.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now tokenwatch
+
+# Start at boot even when nobody is logged in
+sudo loginctl enable-linger "$USER"
+```
+
+Check it with `systemctl --user status tokenwatch` and follow the logs with `journalctl --user -u tokenwatch -f`. If a firewall is enabled, open the port, for example `sudo ufw allow 7777/tcp`.
+
 ## Project layout
 
 ```
 tokenwatch/
-├── README.md       # this file
-├── run.sh          # starts the static server and the scraper; Ctrl+C stops both
-├── scrape.py       # drives the CLIs in tmux and writes public/usage.json
-├── probe/          # working directory for the CLIs and captured screens
-└── public/         # the ONLY directory served over the network
-    ├── index.html  # the dashboard
-    ├── usage.json  # written by scrape.py
+├── README.md           # this file
+├── tokenwatch.service  # systemd user unit for running at boot on Linux
+├── run.sh              # starts the static server and the scraper; Ctrl+C stops both
+├── scrape.py           # drives the CLIs in tmux and writes public/usage.json
+├── probe/              # working directory for the CLIs and captured screens
+└── public/             # the ONLY directory served over the network
+    ├── index.html      # the dashboard
+    ├── usage.json      # written by scrape.py
     └── image/
         ├── Claude.png
         └── Codex.png

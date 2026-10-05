@@ -1,0 +1,16 @@
+[Unit]
+Description=TokenWatch usage dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/github/tokenwatch
+ExecStart=/bin/bash %h/github/tokenwatch/run.sh
+Restart=on-failure
+RestartSec=30
+Environment=TERM=xterm-256color
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

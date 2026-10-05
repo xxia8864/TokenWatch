@@ -1,0 +1,8 @@
+# Runtime output written by scrape.py
+public/usage.json
+.usage.json.tmp
+probe/*
+
+# Python
+__pycache__/
+*.pyc
